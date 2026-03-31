@@ -56,6 +56,7 @@ services:
     container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     ports:
       - "9090:9090"
 
@@ -72,3 +73,8 @@ services:
       - ./grafana.json:/var/lib/grafana/dashboards/grafana.json
       - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources
       - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  prometheus_data:
+  grafana_data:
