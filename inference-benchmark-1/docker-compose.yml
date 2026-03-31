@@ -16,7 +16,7 @@ services:
       - ./models:/models
       - ./llm_cache:/llm_cache
     command: >
-      serve /models/gpt-oss-20b
+      --model /models/gpt-oss-20b
       --port 8000
       --max-model-len 4096
       --max-num-seqs 16
