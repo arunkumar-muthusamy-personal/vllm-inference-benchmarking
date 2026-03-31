@@ -3,6 +3,8 @@ services:
     image: lmcache/vllm-openai:latest
     container_name: vllm
     runtime: nvidia
+    ports:
+      - "8000:8000"
     deploy:
       resources:
         reservations:
