@@ -79,12 +79,14 @@ TOPIC_PAIRS = [
 ]
 
 CATEGORIES = {
-    "short":  {"max_tokens": 128,  "count": 40},
-    "medium": {"max_tokens": 256,  "count": 40},
-    "long":   {"max_tokens": 512,  "count": 40},
-    "xl":     {"max_tokens": 512,  "count": 40},
-    "xxl":    {"max_tokens": 512,  "count": 40},
+    "short":  {"max_tokens": 128},
+    "medium": {"max_tokens": 256},
+    "long":   {"max_tokens": 512},
+    "xl":     {"max_tokens": 512},
+    "xxl":    {"max_tokens": 512},
 }
+
+CATEGORY_NAMES = list(CATEGORIES.keys())
 
 
 def build_prompt(category: str) -> str:
@@ -96,13 +98,24 @@ def build_prompt(category: str) -> str:
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--count", type=int, default=200,
+                        help="Total number of prompts to generate (evenly split across categories)")
+    parser.add_argument("--output", default="test_dataset.jsonl")
+    args = parser.parse_args()
+
+    per_category = args.count // len(CATEGORY_NAMES)
+    remainder = args.count % len(CATEGORY_NAMES)
+
     records = []
-    for category, cfg in CATEGORIES.items():
-        for _ in range(cfg["count"]):
+    for i, category in enumerate(CATEGORY_NAMES):
+        n = per_category + (1 if i < remainder else 0)
+        for _ in range(n):
             records.append({
                 "category": category,
                 "prompt": build_prompt(category),
-                "max_tokens": cfg["max_tokens"],
+                "max_tokens": CATEGORIES[category]["max_tokens"],
                 "temperature": 0.7,
                 "top_p": 0.9,
                 "stream": False,
@@ -110,13 +123,12 @@ def main():
 
     random.shuffle(records)
 
-    output_path = "test_dataset.jsonl"
-    with open(output_path, "w", encoding="utf-8") as f:
+    with open(args.output, "w", encoding="utf-8") as f:
         for record in records:
             f.write(json.dumps(record) + "\n")
 
-    print(f"Generated {len(records)} prompts -> {output_path}")
-    for cat in CATEGORIES:
+    print(f"Generated {len(records)} prompts -> {args.output}")
+    for cat in CATEGORY_NAMES:
         count = sum(1 for r in records if r["category"] == cat)
         print(f"  {cat}: {count} prompts")
 

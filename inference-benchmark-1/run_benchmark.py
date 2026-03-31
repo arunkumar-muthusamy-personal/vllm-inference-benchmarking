@@ -84,7 +84,8 @@ def print_progress(done: int, total: int, start: float, errors: int) -> None:
 
 
 async def run(host: str, port: int, concurrency: int, dataset: list, config_name: str,
-              grafana_url: str = "http://localhost:3000", grafana_key: str = ""):
+              grafana_url: str = "http://localhost:3000", grafana_key: str = "",
+              num_prompts: int = 0):
     url = f"http://{host}:{port}/v1/completions"
     semaphore = asyncio.Semaphore(concurrency)
     done_count = 0
@@ -101,7 +102,7 @@ async def run(host: str, port: int, concurrency: int, dataset: list, config_name
             return result
 
     print(f"\n{'='*60}")
-    print(f"Config: {config_name} | Concurrency: {concurrency} | Prompts: {len(dataset)}")
+    print(f"Config: {config_name} | Concurrency: {concurrency} | Prompts: {num_prompts or len(dataset)}")
     print(f"Target: {url}")
     print(f"{'='*60}")
 
@@ -124,7 +125,12 @@ async def run(host: str, port: int, concurrency: int, dataset: list, config_name
     )
 
     async with aiohttp.ClientSession() as session:
-        results = await asyncio.gather(*[bounded(p, wall_start) for p in dataset])
+        # Build the exact prompt list to send
+        if num_prompts and num_prompts != len(dataset):
+            work = [dataset[i % len(dataset)] for i in range(num_prompts)]
+        else:
+            work = dataset
+        results = await asyncio.gather(*[bounded(p, wall_start) for p in work])
     print()  # newline after progress bar
     wall_end = time.perf_counter()
     wall_end_ms = int(time.time() * 1000)
@@ -186,6 +192,8 @@ def main():
     parser.add_argument("--config", default="CONFIG-XX", help="Config label for output files")
     parser.add_argument("--grafana-url", default="http://localhost:3000", help="Grafana base URL for annotations")
     parser.add_argument("--grafana-key", default="", help="Grafana API key (leave blank to use admin:admin)")
+    parser.add_argument("--num-prompts", type=int, default=200,
+                        help="Number of prompts to send. Cycles dataset if larger than dataset size. Defaults to full dataset.")
     args = parser.parse_args()
 
     dataset_path = Path(args.dataset)
@@ -196,7 +204,7 @@ def main():
 
     dataset = [json.loads(line) for line in dataset_path.read_text().splitlines() if line.strip()]
     asyncio.run(run(args.host, args.port, args.concurrency, dataset, args.config,
-                    args.grafana_url, args.grafana_key))
+                    args.grafana_url, args.grafana_key, args.num_prompts))
 
 
 if __name__ == "__main__":

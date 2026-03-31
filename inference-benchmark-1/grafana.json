@@ -21,20 +21,7 @@
       }
     ]
   },
-  "templating": {
-    "list": [
-      {
-        "name": "config",
-        "type": "custom",
-        "label": "Config",
-        "query": "CONFIG-01,CONFIG-02,CONFIG-03,CONFIG-04,CONFIG-05,CONFIG-06,CONFIG-07,CONFIG-08,DRY-RUN",
-        "current": { "text": "All", "value": "$__all" },
-        "includeAll": true,
-        "multi": false,
-        "hide": 0
-      }
-    ]
-  },
+  "templating": { "list": [] },
   "panels": [
     {
       "id": 1, "type": "stat", "title": "Requests/sec (live)",
