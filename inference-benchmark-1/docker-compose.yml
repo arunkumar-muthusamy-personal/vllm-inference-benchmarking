@@ -33,7 +33,7 @@ services:
     restart: always
 
   dcgm-exporter:
-    image: nvidia/dcgm-exporter:2.4.13-2.14.2-ubuntu20.04
+    image: nvidia/dcgm-exporter:4.5.2-4.8.1-distroless
     container_name: dcgm-exporter
     runtime: nvidia
     environment:
