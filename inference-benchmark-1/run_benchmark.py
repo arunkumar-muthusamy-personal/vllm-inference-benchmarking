@@ -91,14 +91,14 @@ async def run(host: str, port: int, concurrency: int, dataset: list, config_name
     done_count = 0
     error_count = 0
 
-    async def bounded(payload, start_time):
+    async def bounded(payload, start_time, total):
         nonlocal done_count, error_count
         async with semaphore:
             result = await send_request(session, url, payload)
             done_count += 1
             if not result["success"]:
                 error_count += 1
-            print_progress(done_count, len(dataset), start_time, error_count)
+            print_progress(done_count, total, start_time, error_count)
             return result
 
     print(f"\n{'='*60}")
@@ -130,7 +130,7 @@ async def run(host: str, port: int, concurrency: int, dataset: list, config_name
             work = [dataset[i % len(dataset)] for i in range(num_prompts)]
         else:
             work = dataset
-        results = await asyncio.gather(*[bounded(p, wall_start) for p in work])
+        results = await asyncio.gather(*[bounded(p, wall_start, len(work)) for p in work])
     print()  # newline after progress bar
     wall_end = time.perf_counter()
     wall_end_ms = int(time.time() * 1000)
