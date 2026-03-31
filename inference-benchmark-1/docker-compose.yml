@@ -1,6 +1,6 @@
 services:
   vllm:
-    image: ghcr.io/vllm-project/vllm:latest
+    image: lmcache/vllm-openai:latest
     container_name: vllm
     runtime: nvidia
     deploy:
