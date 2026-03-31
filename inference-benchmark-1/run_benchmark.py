@@ -17,6 +17,29 @@ import aiohttp
 from pathlib import Path
 
 
+async def post_grafana_annotation(
+    grafana_url: str, api_key: str, text: str, tags: list, time_ms: int, end_ms: int = None
+) -> None:
+    """Post a region or point annotation to Grafana. Silently skips if Grafana unreachable."""
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    else:
+        # fall back to basic auth admin:admin
+        import base64
+        headers["Authorization"] = "Basic " + base64.b64encode(b"admin:admin").decode()
+
+    body = {"text": text, "tags": tags, "time": time_ms}
+    if end_ms:
+        body["timeEnd"] = end_ms
+
+    try:
+        async with aiohttp.ClientSession() as s:
+            await s.post(f"{grafana_url}/api/annotations", headers=headers, json=body, timeout=aiohttp.ClientTimeout(total=3))
+    except Exception:
+        pass  # Grafana unavailable — don't block the benchmark
+
+
 async def send_request(session: aiohttp.ClientSession, url: str, payload: dict) -> dict:
     start = time.perf_counter()
     ttft = None
@@ -51,35 +74,75 @@ async def send_request(session: aiohttp.ClientSession, url: str, payload: dict) 
         }
 
 
-async def run(host: str, port: int, concurrency: int, dataset: list, config_name: str):
+def print_progress(done: int, total: int, start: float, errors: int) -> None:
+    elapsed = time.perf_counter() - start
+    rps = done / elapsed if elapsed > 0 else 0
+    pct = done / total * 100
+    bar = ("█" * int(pct / 5)).ljust(20)
+    print(f"\r  [{bar}] {done}/{total} ({pct:.0f}%)  {rps:.1f} req/s  errors: {errors}  elapsed: {elapsed:.1f}s",
+          end="", flush=True)
+
+
+async def run(host: str, port: int, concurrency: int, dataset: list, config_name: str,
+              grafana_url: str = "http://localhost:3000", grafana_key: str = ""):
     url = f"http://{host}:{port}/v1/completions"
     semaphore = asyncio.Semaphore(concurrency)
-    results = []
+    done_count = 0
+    error_count = 0
 
-    async def bounded(payload):
+    async def bounded(payload, start_time):
+        nonlocal done_count, error_count
         async with semaphore:
-            return await send_request(session, url, payload)
+            result = await send_request(session, url, payload)
+            done_count += 1
+            if not result["success"]:
+                error_count += 1
+            print_progress(done_count, len(dataset), start_time, error_count)
+            return result
 
     print(f"\n{'='*60}")
     print(f"Config: {config_name} | Concurrency: {concurrency} | Prompts: {len(dataset)}")
     print(f"Target: {url}")
     print(f"{'='*60}")
 
-    # Warmup
-    print("Warming up (10 requests)...")
+    # Warmup — no progress tracking
+    print("Warming up (10 requests)...", end="", flush=True)
     async with aiohttp.ClientSession() as session:
-        warmup = await asyncio.gather(*[bounded(dataset[i % len(dataset)]) for i in range(10)])
+        await asyncio.gather(*[send_request(session, url, dataset[i % len(dataset)]) for i in range(10)])
+    print(" done.")
 
+    print(f"\nRunning benchmark...")
     wall_start = time.perf_counter()
+    wall_start_ms = int(time.time() * 1000)
+
+    # Annotate run start in Grafana
+    await post_grafana_annotation(
+        grafana_url, grafana_key,
+        text=f"▶ {config_name} | concurrency={concurrency}",
+        tags=["benchmark", config_name, f"c{concurrency}"],
+        time_ms=wall_start_ms,
+    )
+
     async with aiohttp.ClientSession() as session:
-        results = await asyncio.gather(*[bounded(p) for p in dataset])
+        results = await asyncio.gather(*[bounded(p, wall_start) for p in dataset])
+    print()  # newline after progress bar
     wall_end = time.perf_counter()
+    wall_end_ms = int(time.time() * 1000)
 
     wall_time = wall_end - wall_start
     successes = [r for r in results if r["success"]]
     failures = len(results) - len(successes)
     latencies = [r["latency_ms"] for r in successes]
     total_tokens = sum(r["tokens_out"] for r in successes)
+
+    # Annotate run end as a region spanning the full run window
+    await post_grafana_annotation(
+        grafana_url, grafana_key,
+        text=f"■ {config_name} | c={concurrency} | {len(successes)}/{len(results)} ok",
+        tags=["benchmark", config_name, f"c{concurrency}"],
+        time_ms=wall_start_ms,
+        end_ms=wall_end_ms,
+    )
 
     print(f"\nResults:")
     print(f"  Total requests   : {len(results)}")
@@ -121,6 +184,8 @@ def main():
     parser.add_argument("--concurrency", type=int, default=16)
     parser.add_argument("--dataset", default="test_dataset.jsonl")
     parser.add_argument("--config", default="CONFIG-XX", help="Config label for output files")
+    parser.add_argument("--grafana-url", default="http://localhost:3000", help="Grafana base URL for annotations")
+    parser.add_argument("--grafana-key", default="", help="Grafana API key (leave blank to use admin:admin)")
     args = parser.parse_args()
 
     dataset_path = Path(args.dataset)
@@ -130,7 +195,8 @@ def main():
         return
 
     dataset = [json.loads(line) for line in dataset_path.read_text().splitlines() if line.strip()]
-    asyncio.run(run(args.host, args.port, args.concurrency, dataset, args.config))
+    asyncio.run(run(args.host, args.port, args.concurrency, dataset, args.config,
+                    args.grafana_url, args.grafana_key))
 
 
 if __name__ == "__main__":

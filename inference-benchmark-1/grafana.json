@@ -7,8 +7,34 @@
   "graphTooltip": 1,
   "time": { "from": "now-30m", "to": "now" },
   "refresh": "10s",
-  "annotations": { "list": [] },
-  "templating": { "list": [] },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": false,
+        "iconColor": "rgba(255, 96, 96, 1)",
+        "name": "Benchmark Runs",
+        "type": "dashboard",
+        "tags": ["benchmark"]
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "config",
+        "type": "custom",
+        "label": "Config",
+        "query": "CONFIG-01,CONFIG-02,CONFIG-03,CONFIG-04,CONFIG-05,CONFIG-06,CONFIG-07,CONFIG-08",
+        "current": { "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "multi": false,
+        "hide": 0
+      }
+    ]
+  },
   "panels": [
     {
       "id": 1, "type": "stat", "title": "Requests/sec (live)",

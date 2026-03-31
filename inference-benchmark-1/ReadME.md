@@ -87,7 +87,11 @@ These do NOT require a server restart. Pass them directly when running the bench
 | Parameter | CLI Arg | Description | Values to Test |
 |-----------|---------|-------------|----------------|
 | Concurrency | `--concurrency` | Number of parallel in-flight requests | `1`, `4`, `16`, `32`, `64` |
-| Config label | `--config` | Label for output file naming only | e.g. `CONFIG-02` |
+| Config label | `--config` | Label for output file naming and Grafana annotations | e.g. `CONFIG-02` |
+| Grafana URL | `--grafana-url` | Grafana base URL for posting run annotations | `http://localhost:3000` |
+| Grafana key | `--grafana-key` | Grafana API token. If omitted, falls back to `admin:admin` | see note below |
+
+> `--grafana-key` is optional. By default the script uses `admin:admin` basic auth, which matches the docker-compose setup. Only set this if you've locked down Grafana with a service account token (Grafana → Administration → Service Accounts → Add token). If Grafana is unreachable the annotation is silently skipped.
 
 ### 3.3 Per-Request Parameters → test_dataset.jsonl
 
@@ -400,6 +404,10 @@ docker logs -f vllm
 python run_benchmark.py --host localhost --port 8000 --concurrency 1  --config CONFIG-02
 python run_benchmark.py --host localhost --port 8000 --concurrency 16 --config CONFIG-02
 python run_benchmark.py --host localhost --port 8000 --concurrency 32 --config CONFIG-02
+
+# Optional: specify Grafana URL if not on localhost, or use an API token
+python run_benchmark.py --host localhost --port 8000 --concurrency 16 --config CONFIG-02 \
+  --grafana-url http://localhost:3000 --grafana-key eyJrIjoiT0tTcG1pUlY2...
 ```
 
 Each run saves a `results_CONFIG-XX_cYY.json` file in the same folder.
@@ -428,28 +436,27 @@ vLLM's built-in `benchmarks/benchmark_serving.py` (inside the container) uses a 
 
 ---
 
-## 7. Results Table (to be filled after runs)
+## 7. Results
 
-| Config | Concurrency | Throughput (req/s) | Throughput (tok/s) | TTFT p50 (ms) | TTFT p99 (ms) | E2E p50 (ms) | E2E p99 (ms) | GPU Util (%) | VRAM (GB) | Cache Hit % | Errors |
-|--------|-------------|--------------------|--------------------|---------------|---------------|--------------|--------------|--------------|-----------|-------------|--------|
-| CONFIG-01 | 1 | | | | | | | | | N/A | |
-| CONFIG-01 | 16 | | | | | | | | | N/A | |
-| CONFIG-01 | 32 | | | | | | | | | N/A | |
-| CONFIG-02 | 1 | | | | | | | | | N/A | |
-| CONFIG-02 | 16 | | | | | | | | | N/A | |
-| CONFIG-02 | 32 | | | | | | | | | N/A | |
-| CONFIG-03 | 32 | | | | | | | | | N/A | |
-| CONFIG-03 | 64 | | | | | | | | | N/A | |
-| CONFIG-04 | 1 | | | | | | | | | N/A | |
-| CONFIG-04 | 8 | | | | | | | | | N/A | |
-| CONFIG-05 | 16 | | | | | | | | | | |
-| CONFIG-05 | 32 | | | | | | | | | | |
-| CONFIG-06 | 32 | | | | | | | | | | |
-| CONFIG-06 | 64 | | | | | | | | | | |
-| CONFIG-07 | 1 | | | | | | | | | | |
-| CONFIG-07 | 8 | | | | | | | | | | |
-| CONFIG-08 | 16 | | | | | | | | | N/A | |
-| CONFIG-08 | 32 | | | | | | | | | N/A | |
+Results are captured in two ways — no manual table maintenance needed.
+
+**Per-run JSON files** — `run_benchmark.py` saves a `results_CONFIG-XX_cYY.json` after every run with throughput, latency percentiles, and error count. Use these for the writeup.
+
+**Grafana dashboard** — live and historical metrics for GPU util, VRAM, TTFT, latency, KV cache, and throughput. Each run is annotated automatically so you can zoom into any run window. Open `http://localhost:3000`.
+
+To generate a summary table from all result files after testing:
+
+```bash
+python -c "
+import json, glob, os
+files = sorted(glob.glob('results_*.json'))
+print(f'{'Config':<12} {'Conc':>5} {'req/s':>7} {'tok/s':>8} {'p50ms':>7} {'p99ms':>7} {'errors':>7}')
+print('-' * 60)
+for f in files:
+    d = json.load(open(f))
+    print(f'{d[\"config\"]:<12} {d[\"concurrency\"]:>5} {d[\"throughput_req_s\"]:>7.2f} {d[\"throughput_tok_s\"]:>8.1f} {str(d[\"latency_p50_ms\"]):>7} {str(d[\"latency_p99_ms\"]):>7} {d[\"failed\"]:>7}')
+"
+```
 
 ---
 
