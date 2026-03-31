@@ -2,7 +2,7 @@
   "title": "vLLM Benchmark — gpt-oss-20b",
   "uid": "vllm-benchmark-01",
   "schemaVersion": 38,
-  "version": 1,
+  "version": 2,
   "editable": true,
   "graphTooltip": 1,
   "time": { "from": "now-30m", "to": "now" },
@@ -27,7 +27,7 @@
         "name": "config",
         "type": "custom",
         "label": "Config",
-        "query": "CONFIG-01,CONFIG-02,CONFIG-03,CONFIG-04,CONFIG-05,CONFIG-06,CONFIG-07,CONFIG-08",
+        "query": "CONFIG-01,CONFIG-02,CONFIG-03,CONFIG-04,CONFIG-05,CONFIG-06,CONFIG-07,CONFIG-08,DRY-RUN",
         "current": { "text": "All", "value": "$__all" },
         "includeAll": true,
         "multi": false,
@@ -42,7 +42,7 @@
       "datasource": "Prometheus",
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
       "fieldConfig": { "defaults": { "unit": "reqps", "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":10},{"color":"red","value":50}] } } },
-      "targets": [{ "expr": "rate(vllm:request_success:rate1m[1m])", "legendFormat": "req/s", "refId": "A" }]
+      "targets": [{ "expr": "rate(vllm:request_success_total[1m])", "legendFormat": "req/s", "refId": "A" }]
     },
     {
       "id": 2, "type": "stat", "title": "Token Throughput (tok/s)",
@@ -50,7 +50,7 @@
       "datasource": "Prometheus",
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
       "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null}] } } },
-      "targets": [{ "expr": "rate(vllm:generation_tokens:rate1m[1m])", "legendFormat": "tok/s", "refId": "A" }]
+      "targets": [{ "expr": "rate(vllm:generation_tokens_total[1m])", "legendFormat": "tok/s", "refId": "A" }]
     },
     {
       "id": 3, "type": "stat", "title": "Avg E2E Latency (ms)",
@@ -82,7 +82,7 @@
       "datasource": "Prometheus",
       "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
       "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":10},{"color":"red","value":30}] } } },
-      "targets": [{ "expr": "vllm:num_requests_waiting:gauge", "legendFormat": "waiting", "refId": "A" }]
+      "targets": [{ "expr": "vllm:num_requests_waiting", "legendFormat": "waiting", "refId": "A" }]
     },
     {
       "id": 10, "type": "timeseries", "title": "Throughput — Requests/sec & Tokens/sec",
@@ -96,8 +96,8 @@
       },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "rate(vllm:request_success:rate1m[1m])", "legendFormat": "req/s", "refId": "A" },
-        { "expr": "rate(vllm:generation_tokens:rate1m[1m])", "legendFormat": "tok/s", "refId": "B" }
+        { "expr": "rate(vllm:request_success_total[1m])", "legendFormat": "req/s", "refId": "A" },
+        { "expr": "rate(vllm:generation_tokens_total[1m])", "legendFormat": "tok/s", "refId": "B" }
       ]
     },
     {
@@ -125,15 +125,14 @@
       ]
     },
     {
-      "id": 13, "type": "timeseries", "title": "Scheduler — Running / Waiting / Swapped Sequences",
+      "id": 13, "type": "timeseries", "title": "Scheduler — Running / Waiting Sequences",
       "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
       "datasource": "Prometheus",
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "vllm:num_requests_running:gauge", "legendFormat": "running", "refId": "A" },
-        { "expr": "vllm:num_requests_waiting:gauge", "legendFormat": "waiting", "refId": "B" },
-        { "expr": "vllm:num_requests_swapped:gauge", "legendFormat": "swapped", "refId": "C" }
+        { "expr": "vllm:num_requests_running", "legendFormat": "running", "refId": "A" },
+        { "expr": "vllm:num_requests_waiting", "legendFormat": "waiting", "refId": "B" }
       ]
     },
     {
@@ -175,7 +174,7 @@
       "datasource": "Prometheus",
       "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
       "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
-      "targets": [{ "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode='idle'}[1m])) * 100)", "legendFormat": "CPU %", "refId": "A" }]
+      "targets": [{ "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[1m])) * 100)", "legendFormat": "CPU %", "refId": "A" }]
     },
     {
       "id": 25, "type": "timeseries", "title": "RAM Used (GB)",
@@ -193,8 +192,7 @@
         "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"yellow","value":80},{"color":"red","value":95}] } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "vllm:gpu_cache_usage_perc:gauge * 100", "legendFormat": "GPU KV Cache %", "refId": "A" },
-        { "expr": "vllm:cpu_cache_usage_perc:gauge * 100", "legendFormat": "CPU KV Cache (swap) %", "refId": "B" }
+        { "expr": "vllm:kv_cache_usage_perc * 100", "legendFormat": "KV Cache %", "refId": "A" }
       ]
     },
     {
@@ -204,30 +202,29 @@
       "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "rate(vllm:prompt_tokens:rate1m[1m])", "legendFormat": "prompt tok/s", "refId": "A" },
-        { "expr": "rate(vllm:generation_tokens:rate1m[1m])", "legendFormat": "generation tok/s", "refId": "B" }
+        { "expr": "rate(vllm:prompt_tokens_total[1m])", "legendFormat": "prompt tok/s", "refId": "A" },
+        { "expr": "rate(vllm:generation_tokens_total[1m])", "legendFormat": "generation tok/s", "refId": "B" }
       ]
     },
     {
-      "id": 32, "type": "timeseries", "title": "Inter-Token Latency (ms) — Time Between Tokens",
+      "id": 32, "type": "timeseries", "title": "Inter-Token Latency (ms)",
       "gridPos": { "x": 0, "y": 41, "w": 12, "h": 7 },
       "datasource": "Prometheus",
       "fieldConfig": { "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 5 } } },
       "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "histogram_quantile(0.50, rate(vllm:time_per_output_token_seconds_bucket[1m])) * 1000", "legendFormat": "ITL p50", "refId": "A" },
-        { "expr": "histogram_quantile(0.99, rate(vllm:time_per_output_token_seconds_bucket[1m])) * 1000", "legendFormat": "ITL p99", "refId": "B" }
+        { "expr": "histogram_quantile(0.50, rate(vllm:inter_token_latency_seconds_bucket[1m])) * 1000", "legendFormat": "ITL p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.99, rate(vllm:inter_token_latency_seconds_bucket[1m])) * 1000", "legendFormat": "ITL p99", "refId": "B" }
       ]
     },
     {
-      "id": 33, "type": "timeseries", "title": "Request Errors / Failures",
+      "id": 33, "type": "timeseries", "title": "Prefix Cache Hit Rate (%)",
       "gridPos": { "x": 12, "y": 41, "w": 12, "h": 7 },
       "datasource": "Prometheus",
-      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2, "fillOpacity": 10 },
-        "thresholds": { "mode": "absolute", "steps": [{"color":"green","value":null},{"color":"red","value":1}] } } },
-      "options": { "tooltip": { "mode": "single" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "lineWidth": 2, "fillOpacity": 10 } } },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
       "targets": [
-        { "expr": "rate(vllm:request_failure:rate1m[1m])", "legendFormat": "failures/s", "refId": "A" }
+        { "expr": "rate(vllm:prefix_cache_hits_total[1m]) / rate(vllm:prefix_cache_queries_total[1m]) * 100", "legendFormat": "prefix cache hit %", "refId": "A" }
       ]
     }
   ]
