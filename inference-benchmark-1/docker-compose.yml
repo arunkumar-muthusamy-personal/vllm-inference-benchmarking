@@ -16,11 +16,15 @@ services:
       - ./models:/models
       - ./llm_cache:/llm_cache
     command: >
-      vllm.Server
       --model /models/gpt-oss-20b
-      --load-in-4bit
       --port 8000
-      --metrics
+      --max-model-len 4096
+      --max-num-seqs 16
+      --max-num-batched-tokens 8192
+      --gpu-memory-utilization 0.90
+      --block-size 16
+      --swap-space 0
+      --served-model-name gpt-oss-20b
 
   node-exporter:
     image: quay.io/prometheus/node-exporter:latest

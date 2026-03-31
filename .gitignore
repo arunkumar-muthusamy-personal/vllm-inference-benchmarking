@@ -29,3 +29,6 @@ grafana-data/
 Thumbs.db
 .env
 *.log
+
+# Custom
+git-ignore
