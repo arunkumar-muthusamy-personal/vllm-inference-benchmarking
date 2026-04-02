@@ -16,7 +16,7 @@ fi
 # Step 1 — Build
 echo "Building image..."
 docker buildx create --use
-docker buildx build --platform linux/amd64,linux/arm64 \
+docker buildx build --platform linux/amd64 \
     -f "$DOCKERFILE" \
     -t "$IMAGE_LATEST" \
     -t "$IMAGE_VERSION" \
