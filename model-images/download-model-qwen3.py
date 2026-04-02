@@ -1,12 +1,12 @@
 import os
 from huggingface_hub import snapshot_download
 
-# Replace with the correct repo name
-repo_id = "openai/gpt-oss-20b"
+model_name = "Qwen3-30B-A3B"
+repo_id = f"Qwen/{model_name}"
 
 snapshot_download(
     repo_id=repo_id,
-    local_dir="./models/gpt-oss-20b",
+    local_dir=f"./models/{model_name}",
     local_dir_use_symlinks=False,
     token=os.environ.get("HF_TOKEN")
 )
