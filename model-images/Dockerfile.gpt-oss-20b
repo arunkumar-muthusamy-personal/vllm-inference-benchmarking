@@ -1,0 +1,9 @@
+FROM alpine:3.19
+
+WORKDIR /models
+
+# Copy pre-downloaded model
+COPY models/gpt-oss-20b/ /models/gpt-oss-20b/
+
+# Optional: verify contents
+RUN ls -lh /models/gpt-oss-20b
