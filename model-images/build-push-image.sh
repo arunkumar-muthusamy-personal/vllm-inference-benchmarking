@@ -5,18 +5,31 @@ VERSION="4.55.0.dev0"
 MODEL_NAME="gpt-oss-20b-model"
 GH_USER_NAME="arunkumar-muthusamy-personal"
 DOCKERFILE="Dockerfile.gpt-oss-20b"
+IMAGE_LATEST="ghcr.io/${GH_USER_NAME}/${MODEL_NAME}:latest"
+IMAGE_VERSION="ghcr.io/${GH_USER_NAME}/${MODEL_NAME}:${VERSION}"
 
 if [ -z "$GITHUB_PAT" ]; then
     echo "Error: GITHUB_PAT environment variable is not set. Exiting."
     exit 1
 fi
 
-echo "$GITHUB_PAT" | docker login ghcr.io -u "$GH_USER_NAME" --password-stdin
-
+# Step 1 — Build
+echo "Building image..."
 docker buildx create --use
 docker buildx build --platform linux/amd64,linux/arm64 \
     -f "$DOCKERFILE" \
-    -t "ghcr.io/${GH_USER_NAME}/${MODEL_NAME}:latest" \
-    -t "ghcr.io/${GH_USER_NAME}/${MODEL_NAME}:${VERSION}" \
-    --push \
+    -t "$IMAGE_LATEST" \
+    -t "$IMAGE_VERSION" \
+    --load \
     .
+
+echo "Build complete."
+
+# Step 2 — Push
+echo "Pushing image..."
+echo "$GITHUB_PAT" | docker login ghcr.io -u "$GH_USER_NAME" --password-stdin
+
+docker push "$IMAGE_LATEST"
+docker push "$IMAGE_VERSION"
+
+echo "Push complete."
