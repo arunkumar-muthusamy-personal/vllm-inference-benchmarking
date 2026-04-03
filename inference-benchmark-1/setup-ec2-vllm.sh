@@ -41,9 +41,9 @@ echo "=============================="
 if [[ "$PKG" == "apt-get" ]]; then
     $PKG_INSTALL nvidia-driver-535
 else
-    # Amazon Linux / RHEL — use DKMS driver from CUDA repo
-    sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/cuda-amzn2023.repo 2>/dev/null || \
-    sudo dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/cuda-rhel9.repo
+    # Amazon Linux 2023 — download repo file directly to bypass SSL issues
+    curl -ksSL https://developer.download.nvidia.com/compute/cuda/repos/amzn2023/x86_64/cuda-amzn2023.repo \
+        | sudo tee /etc/yum.repos.d/cuda-amzn2023.repo
     $PKG_INSTALL kernel-devel kernel-headers
     $PKG_INSTALL nvidia-driver nvidia-driver-cuda
 fi
@@ -64,7 +64,7 @@ echo "=============================="
 echo "Installing Docker..."
 echo "=============================="
 if [[ "$PKG" == "apt-get" ]]; then
-    curl -fsSL https://get.docker.com | sh
+    curl -fsSLk https://get.docker.com | sh
 else
     $PKG_INSTALL docker
     sudo systemctl enable docker
@@ -75,9 +75,9 @@ sudo usermod -aG docker $USER
 echo "=============================="
 echo "Installing NVIDIA Container Toolkit..."
 echo "=============================="
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -fsSLk https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list 2>/dev/null | \
+curl -ksL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list 2>/dev/null | \
     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null || true
 
@@ -85,7 +85,7 @@ if [[ "$PKG" == "apt-get" ]]; then
     sudo apt-get update
     sudo apt-get install -y nvidia-container-toolkit
 else
-    curl -s -L https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | \
+    curl -ksL https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | \
         sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo
     $PKG_INSTALL nvidia-container-toolkit
 fi
