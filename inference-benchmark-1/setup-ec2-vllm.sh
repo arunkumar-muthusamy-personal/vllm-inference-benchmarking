@@ -32,7 +32,7 @@ echo "=============================="
 if [[ "$PKG" == "apt-get" ]]; then
     $PKG_INSTALL curl wget git build-essential
 else
-    $PKG_INSTALL curl wget git gcc gcc-c++ make
+    $PKG_INSTALL wget git gcc gcc-c++ make
 fi
 
 echo "=============================="
@@ -75,13 +75,14 @@ sudo usermod -aG docker $USER
 echo "=============================="
 echo "Installing NVIDIA Container Toolkit..."
 echo "=============================="
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
-
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list 2>/dev/null | \
-    sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
-    sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null || true
 
 if [[ "$PKG" == "apt-get" ]]; then
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+
+    curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list 2>/dev/null | \
+        sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+        sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null || true
+
     sudo apt-get update
     sudo apt-get install -y nvidia-container-toolkit
 else
