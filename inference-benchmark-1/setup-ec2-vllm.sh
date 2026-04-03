@@ -73,6 +73,18 @@ fi
 sudo usermod -aG docker $USER
 
 echo "=============================="
+echo "Configuring Docker storage to /mnt/docker..."
+echo "=============================="
+sudo mkdir -p /mnt/docker
+sudo cat > /etc/docker/daemon.json <<EOF
+{
+  "data-root": "/mnt/docker"
+}
+EOF
+sudo systemctl restart docker
+echo "Docker data root set to /mnt/docker"
+
+echo "=============================="
 echo "Installing NVIDIA Container Toolkit..."
 echo "=============================="
 
