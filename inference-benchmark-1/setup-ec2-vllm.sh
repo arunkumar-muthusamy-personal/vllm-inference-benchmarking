@@ -76,6 +76,8 @@ echo "=============================="
 echo "Configuring Docker storage to /mnt/docker..."
 echo "=============================="
 sudo mkdir -p /mnt/docker
+sudo chown root:root /mnt/docker
+sudo chmod 711 /mnt/docker
 sudo cat > /etc/docker/daemon.json <<EOF
 {
   "data-root": "/mnt/docker"
