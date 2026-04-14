@@ -2,7 +2,7 @@
 set -e
 
 VERSION="4.43.1"
-MODEL_NAME="qwen2.5-32b-instruct"
+MODEL_NAME="mistral-small-3.2-24b-instruct-2506"
 GH_USER_NAME="arunkumar-muthusamy-personal"
 DOCKERFILE="Dockerfile"
 IMAGE_LATEST="ghcr.io/${GH_USER_NAME}/${MODEL_NAME}:latest"
