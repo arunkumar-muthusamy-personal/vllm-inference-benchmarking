@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-VERSION="4.43.1"
+VERSION="4.52.4"
 MODEL_NAME="mistral-small-3.2-24b-instruct-2506"
 GH_USER_NAME="arunkumar-muthusamy-personal"
 DOCKERFILE="Dockerfile"
