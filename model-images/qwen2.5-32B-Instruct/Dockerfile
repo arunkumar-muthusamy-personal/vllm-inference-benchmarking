@@ -3,7 +3,7 @@ FROM alpine:3.19
 WORKDIR /models
 
 # Copy pre-downloaded model
-COPY models/Qwen3-30B-A3B/ /models/Qwen3-30B-A3B/
+COPY model/ /models/Qwen2.5-32B-Instruct/
 
 # Optional: verify contents
-RUN ls -lh /models/Qwen3-30B-A3B
+RUN ls -lh /models/Qwen2.5-32B-Instruct

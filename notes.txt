@@ -1,0 +1,1 @@
+ssh -i ..\aws-personal-ec2-ssh.pem ec2-user@ec2-54-158-128-215.compute-1.amazonaws.com
