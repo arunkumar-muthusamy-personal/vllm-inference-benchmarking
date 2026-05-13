@@ -997,5 +997,3 @@ open http://localhost:3000
 ```
 
 ---
-
-**Good luck with your benchmarking! This systematic approach will give you confident, data-driven decisions for production vLLM deployment.**
